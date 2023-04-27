@@ -12,16 +12,31 @@ type rdbStore struct {
 	db *sql.DB
 }
 
-func NewRDBStore(db sql.DB) StoreInterface {
-	return &rdbStore{
-		db: &db,
-	}
+func NewRDBStore(db *sql.DB) StoreInterface {
+	return &rdbStore{db}
 }
 
 var (
 	ErrNotFound      = errors.New("The requested product was not found")
 	ErrAlreadyExists = errors.New("The product already exists")
 )
+
+func (s *rdbStore) ReadAll() ([]domain.Product, error) {
+	rows, err := s.db.Query("select * from products")
+	if err != nil {
+		return []domain.Product{}, err
+	}
+	products := make([]domain.Product, 0)
+	for rows.Next() {
+		var product domain.Product
+		err := rows.Scan(&product.Id, &product.Name, &product.Quantity, &product.CodeValue, &product.IsPublished, &product.Expiration, &product.Price, &product.WarehouseId)
+		if err != nil {
+			return []domain.Product{}, err
+		}
+		products = append(products, product)
+	}
+	return products, nil
+}
 
 func (s *rdbStore) Read(id int) (domain.Product, error) {
 	var product domain.Product
@@ -38,9 +53,9 @@ func (s *rdbStore) Read(id int) (domain.Product, error) {
 func (s *rdbStore) Create(product domain.Product) error {
 	stmt, err := s.db.Prepare(`
 		insert into products
-		(id, name, quantity, code_value, is_published, expiration, price)
+		(id, name, quantity, code_value, is_published, expiration, price, id_warehouse)
 		values
-		((select max(id)+1 from products prods),?, ?, ?, ?, ?, ?)`)
+		((select max(id)+1 from products prods),?, ?, ?, ?, ?, ?, ?)`)
 	if err != nil {
 		return err
 	}
@@ -53,6 +68,7 @@ func (s *rdbStore) Create(product domain.Product) error {
 		product.IsPublished,
 		product.Expiration,
 		product.Price,
+		product.WarehouseId,
 	)
 	if err != nil {
 		//Castear a error de MySQL

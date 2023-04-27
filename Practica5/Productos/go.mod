@@ -2,14 +2,20 @@ module github.com/RicardoIvan-CM/Practicas-BDD/Practica5/Productos
 
 go 1.17
 
-require github.com/stretchr/testify v1.7.1 // indirect
+require github.com/stretchr/testify v1.8.2 // indirect
 
 require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/joho/godotenv v1.5.1
 )
 
-require golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+require (
+	github.com/DATA-DOG/go-txdb v0.1.6 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
 
 require (
 	github.com/gin-contrib/sse v0.1.0 // indirect

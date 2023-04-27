@@ -3,6 +3,8 @@ package store
 import "github.com/RicardoIvan-CM/Practicas-BDD/Practica5/Productos/internal/domain"
 
 type StoreInterface interface {
+	//ReadAll devuelve todos los productos
+	ReadAll() ([]domain.Product, error)
 	// Read devuelve un producto por su id
 	Read(id int) (domain.Product, error)
 	// Create agrega un nuevo producto

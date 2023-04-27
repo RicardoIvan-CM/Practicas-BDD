@@ -1,8 +1,14 @@
 package product
 
-import "github.com/RicardoIvan-CM/Practicas-BDD/Practica5/Productos/internal/domain"
+import (
+	"fmt"
+
+	"github.com/RicardoIvan-CM/Practicas-BDD/Practica5/Productos/internal/domain"
+)
 
 type Service interface {
+	//GetAll trae todos los warehouses
+	GetAll() ([]domain.Product, error)
 	// GetByID busca un producto por su id
 	GetByID(id int) (domain.Product, error)
 	// Create agrega un nuevo producto
@@ -22,6 +28,14 @@ func NewService(r Repository) Service {
 	return &service{r}
 }
 
+func (s *service) GetAll() ([]domain.Product, error) {
+	ps, err := s.r.GetAll()
+	if err != nil {
+		return []domain.Product{}, err
+	}
+	return ps, nil
+}
+
 func (s *service) GetByID(id int) (domain.Product, error) {
 	p, err := s.r.GetByID(id)
 	if err != nil {
@@ -33,6 +47,7 @@ func (s *service) GetByID(id int) (domain.Product, error) {
 func (s *service) Create(p domain.Product) (domain.Product, error) {
 	p, err := s.r.Create(p)
 	if err != nil {
+		fmt.Println(err)
 		return domain.Product{}, err
 	}
 	return p, nil

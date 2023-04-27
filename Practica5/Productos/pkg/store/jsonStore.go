@@ -46,6 +46,14 @@ func NewJsonStore(path string) StoreInterface {
 	}
 }
 
+func (s *jsonStore) ReadAll() ([]domain.Product, error) {
+	products, err := s.loadProducts()
+	if err != nil {
+		return []domain.Product{}, err
+	}
+	return products, nil
+}
+
 func (s *jsonStore) Read(id int) (domain.Product, error) {
 	products, err := s.loadProducts()
 	if err != nil {

@@ -8,6 +8,8 @@ import (
 )
 
 type Repository interface {
+	//GetAll trae todos los warehouses
+	GetAll() ([]domain.Product, error)
 	// GetByID busca un producto por su id
 	GetByID(id int) (domain.Product, error)
 	// Create agrega un nuevo producto
@@ -25,6 +27,14 @@ type repository struct {
 // NewRepository crea un nuevo repositorio
 func NewRepository(storage store.StoreInterface) Repository {
 	return &repository{storage}
+}
+
+func (r *repository) GetAll() ([]domain.Product, error) {
+	products, err := r.storage.ReadAll()
+	if err != nil {
+		return []domain.Product{}, err
+	}
+	return products, nil
 }
 
 func (r *repository) GetByID(id int) (domain.Product, error) {

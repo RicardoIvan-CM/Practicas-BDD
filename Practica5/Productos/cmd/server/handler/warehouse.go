@@ -4,39 +4,38 @@ import (
 	"errors"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/RicardoIvan-CM/Practicas-BDD/Practica5/Productos/internal/domain"
-	"github.com/RicardoIvan-CM/Practicas-BDD/Practica5/Productos/internal/product"
+	"github.com/RicardoIvan-CM/Practicas-BDD/Practica5/Productos/internal/warehouse"
 	"github.com/RicardoIvan-CM/Practicas-BDD/Practica5/Productos/pkg/web"
 	"github.com/gin-gonic/gin"
 )
 
-type productHandler struct {
-	s product.Service
+type warehouseHandler struct {
+	s warehouse.Service
 }
 
-// NewProductHandler crea un nuevo controller de productos
-func NewProductHandler(s product.Service) *productHandler {
-	return &productHandler{
+// NewWarehouseHandler crea un nuevo controller de productos
+func NewWarehouseHandler(s warehouse.Service) *warehouseHandler {
+	return &warehouseHandler{
 		s: s,
 	}
 }
 
 // GetAll obtiene todos los productos
-func (h *productHandler) GetAll() gin.HandlerFunc {
+func (h *warehouseHandler) GetAll() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		products, err := h.s.GetAll()
+		warehouses, err := h.s.GetAll()
 		if err != nil {
 			web.Failure(c, 500, err)
 			return
 		}
-		web.Success(c, 200, products)
+		web.Success(c, 200, warehouses)
 	}
 }
 
 // Get obtiene un producto por id
-func (h *productHandler) GetByID() gin.HandlerFunc {
+func (h *warehouseHandler) GetByID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idParam := c.Param("id")
 		id, err := strconv.Atoi(idParam)
@@ -46,7 +45,24 @@ func (h *productHandler) GetByID() gin.HandlerFunc {
 		}
 		product, err := h.s.GetByID(id)
 		if err != nil {
-			web.Failure(c, 404, errors.New("product not found"))
+			web.Failure(c, 404, errors.New("warehouse not found"))
+			return
+		}
+		web.Success(c, 200, product)
+	}
+}
+
+func (h *warehouseHandler) GetProductsByID() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idParam := c.Query("id")
+		id, err := strconv.Atoi(idParam)
+		if err != nil || id == 0 {
+			web.Failure(c, 400, errors.New("invalid id"))
+			return
+		}
+		product, err := h.s.GetProductsByID(id)
+		if err != nil {
+			web.Failure(c, 404, errors.New("warehouse not found"))
 			return
 		}
 		web.Success(c, 200, product)
@@ -54,46 +70,20 @@ func (h *productHandler) GetByID() gin.HandlerFunc {
 }
 
 // validateEmptys valida que los campos no esten vacios
-func validateEmptys(product *domain.Product) (bool, error) {
+func validateEmptysWarehouse(warehouse *domain.Warehouse) (bool, error) {
 	switch {
-	case product.Name == "" || product.CodeValue == "" || product.Expiration == "":
+	case warehouse.Name == "" || warehouse.Address == "" || warehouse.Telephone == "":
 		return false, errors.New("fields can't be empty")
-	case product.Quantity <= 0 || product.Price <= 0:
-		if product.Quantity <= 0 {
-			return false, errors.New("quantity must be greater than 0")
-		}
-		if product.Price <= 0 {
-			return false, errors.New("price must be greater than 0")
-		}
-	}
-	return true, nil
-}
-
-// validateExpiration valida que la fecha de expiracion sea valida
-func validateExpiration(exp string) (bool, error) {
-	dates := strings.Split(exp, "-")
-	list := []int{}
-	if len(dates) != 3 {
-		return false, errors.New("invalid expiration date, must be in format: yyyy-mm-dd")
-	}
-	for value := range dates {
-		number, err := strconv.Atoi(dates[value])
-		if err != nil {
-			return false, errors.New("invalid expiration date, must be numbers")
-		}
-		list = append(list, number)
-	}
-	condition := (list[0] < 1 || list[0] > 9999) && (list[1] < 1 || list[1] > 12) && (list[2] < 1 || list[2] > 31)
-	if condition {
-		return false, errors.New("invalid expiration date, date must be between 1 and 9999/12/31")
+	case warehouse.Capacity <= 0:
+		return false, errors.New("quantity must be greater than 0")
 	}
 	return true, nil
 }
 
 // Post crea un nuevo producto
-func (h *productHandler) Post() gin.HandlerFunc {
+func (h *warehouseHandler) Post() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var product domain.Product
+		var warehouse domain.Warehouse
 		token := c.GetHeader("TOKEN")
 		if token == "" {
 			web.Failure(c, 401, errors.New("token not found"))
@@ -103,22 +93,17 @@ func (h *productHandler) Post() gin.HandlerFunc {
 			web.Failure(c, 401, errors.New("invalid token"))
 			return
 		}
-		err := c.ShouldBindJSON(&product)
+		err := c.ShouldBindJSON(&warehouse)
 		if err != nil {
 			web.Failure(c, 400, errors.New("invalid json"))
 			return
 		}
-		valid, err := validateEmptys(&product)
+		valid, err := validateEmptysWarehouse(&warehouse)
 		if !valid {
 			web.Failure(c, 400, err)
 			return
 		}
-		valid, err = validateExpiration(product.Expiration)
-		if !valid {
-			web.Failure(c, 400, err)
-			return
-		}
-		p, err := h.s.Create(product)
+		p, err := h.s.Create(warehouse)
 		if err != nil {
 			web.Failure(c, 400, err)
 			return
@@ -128,7 +113,7 @@ func (h *productHandler) Post() gin.HandlerFunc {
 }
 
 // Delete elimina un producto
-func (h *productHandler) Delete() gin.HandlerFunc {
+func (h *warehouseHandler) Delete() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("TOKEN")
 		if token == "" {
@@ -155,7 +140,7 @@ func (h *productHandler) Delete() gin.HandlerFunc {
 }
 
 // Put actualiza un producto
-func (h *productHandler) Put() gin.HandlerFunc {
+func (h *warehouseHandler) Put() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("TOKEN")
 		if token == "" {
@@ -174,30 +159,25 @@ func (h *productHandler) Put() gin.HandlerFunc {
 		}
 		_, err = h.s.GetByID(id)
 		if err != nil {
-			web.Failure(c, 404, errors.New("product not found"))
+			web.Failure(c, 404, errors.New("warehouse not found"))
 			return
 		}
 		if err != nil {
 			web.Failure(c, 409, err)
 			return
 		}
-		var product domain.Product
-		err = c.ShouldBindJSON(&product)
+		var warehouse domain.Warehouse
+		err = c.ShouldBindJSON(&warehouse)
 		if err != nil {
 			web.Failure(c, 400, errors.New("invalid json"))
 			return
 		}
-		valid, err := validateEmptys(&product)
+		valid, err := validateEmptysWarehouse(&warehouse)
 		if !valid {
 			web.Failure(c, 400, err)
 			return
 		}
-		valid, err = validateExpiration(product.Expiration)
-		if !valid {
-			web.Failure(c, 400, err)
-			return
-		}
-		p, err := h.s.Update(id, product)
+		p, err := h.s.Update(id, warehouse)
 		if err != nil {
 			web.Failure(c, 409, err)
 			return
@@ -207,14 +187,12 @@ func (h *productHandler) Put() gin.HandlerFunc {
 }
 
 // Patch actualiza un producto o alguno de sus campos
-func (h *productHandler) Patch() gin.HandlerFunc {
+func (h *warehouseHandler) Patch() gin.HandlerFunc {
 	type Request struct {
-		Name        string  `json:"name,omitempty"`
-		Quantity    int     `json:"quantity,omitempty"`
-		CodeValue   string  `json:"code_value,omitempty"`
-		IsPublished bool    `json:"is_published,omitempty"`
-		Expiration  string  `json:"expiration,omitempty"`
-		Price       float64 `json:"price,omitempty"`
+		Name      string  `json:"name,omitempty"`
+		Address   string  `json:"address,omitempty"`
+		Telephone string  `json:"telephone,omitempty"`
+		Capacity  float64 `json:"capacity,omitempty"`
 	}
 	return func(c *gin.Context) {
 		token := c.GetHeader("TOKEN")
@@ -235,27 +213,18 @@ func (h *productHandler) Patch() gin.HandlerFunc {
 		}
 		_, err = h.s.GetByID(id)
 		if err != nil {
-			web.Failure(c, 404, errors.New("product not found"))
+			web.Failure(c, 404, errors.New("warehouse not found"))
 			return
 		}
 		if err := c.ShouldBindJSON(&r); err != nil {
 			web.Failure(c, 400, errors.New("invalid json"))
 			return
 		}
-		update := domain.Product{
-			Name:        r.Name,
-			Quantity:    r.Quantity,
-			CodeValue:   r.CodeValue,
-			IsPublished: r.IsPublished,
-			Expiration:  r.Expiration,
-			Price:       r.Price,
-		}
-		if update.Expiration != "" {
-			valid, err := validateExpiration(update.Expiration)
-			if !valid {
-				web.Failure(c, 400, err)
-				return
-			}
+		update := domain.Warehouse{
+			Name:      r.Name,
+			Address:   r.Address,
+			Telephone: r.Telephone,
+			Capacity:  int(r.Capacity),
 		}
 		p, err := h.s.Update(id, update)
 		if err != nil {
